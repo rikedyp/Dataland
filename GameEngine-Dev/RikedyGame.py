@@ -6,43 +6,55 @@ from pygame.locals import *
 import numpy as np
 
 class Point3D:
-    def __init__(self, x = 0, y = 0, z = 0):
-        self.x, self.y, self.z = float(x), float(y), float(z)
- 
-    def rotateX(self, angle):
-        """ Rotates the point around the X axis by the given angle in degrees. """
-        rad = angle * math.pi / 180
-        cosa = math.cos(rad)
-        sina = math.sin(rad)
-        y = self.y * cosa - self.z * sina
-        z = self.y * sina + self.z * cosa
-        return Point3D(self.x, y, z)
- 
-    def rotateY(self, angle):
-        """ Rotates the point around the Y axis by the given angle in degrees. """
-        rad = angle * math.pi / 180
-        cosa = math.cos(rad)
-        sina = math.sin(rad)
-        z = self.z * cosa - self.x * sina
-        x = self.z * sina + self.x * cosa
-        return Point3D(x, self.y, z)
- 
-    def rotateZ(self, angle):
-        """ Rotates the point around the Z axis by the given angle in degrees. """
-        rad = angle * math.pi / 180
-        cosa = math.cos(rad)
-        sina = math.sin(rad)
-        x = self.x * cosa - self.y * sina
-        y = self.x * sina + self.y * cosa
-        return Point3D(x, y, self.z)
- 
-    def project(self, win_width, win_height, fov, viewer_distance):
-        """ Transforms this 3D point to 2D using a perspective projection. """
-        factor = fov / (viewer_distance + self.z)
-        x = self.x * factor + win_width / 2
-        y = -self.y * factor + win_height / 2
-        return Point3D(x, y, self.z)
+  def __init__(self, x = 0, y = 0, z = 0):
+    self.x, self.y, self.z = float(x), float(y), float(z)
 
+  def addX(self,newpos):
+    x = self.x + newpos
+    return Point3D(x,self.y,self.z)
+
+  def addY(self,newpos):
+    y = self.y + newpos
+    return Point3D(self.x,y,self.z)
+
+  def addZ(self,newpos):
+    z = self.z + newpos
+    return Point3D(self.x,self.y,z)
+
+ 
+  def rotateX(self, angle):
+    #  """ Rotates the point around the X axis by the given angle in degrees. """
+    rad = angle * math.pi / 180
+    cosa = math.cos(rad)
+    sina = math.sin(rad)
+    y = self.y * cosa - self.z * sina
+    z = self.y * sina + self.z * cosa
+    return Point3D(self.x, y, z)
+ 
+  def rotateY(self, angle):
+    #""" Rotates the point around the Y axis by the given angle in degrees. """
+    rad = angle * math.pi / 180
+    cosa = math.cos(rad)
+    sina = math.sin(rad)
+    z = self.z * cosa - self.x * sina
+    x = self.z * sina + self.x * cosa
+    return Point3D(x, self.y, z)
+ 
+  def rotateZ(self, angle):
+     #  """ Rotates the point around the Z axis by the given angle in degrees. """
+    rad = angle * math.pi / 180
+    cosa = math.cos(rad)
+    sina = math.sin(rad)
+    x = self.x * cosa - self.y * sina
+    y = self.x * sina + self.y * cosa
+    return Point3D(x, y, self.z)
+ 
+  def project(self, win_width, win_height, fov, viewer_distance):
+    #    """ Transforms this 3D point to 2D using a perspective projection. """
+    factor = fov / (viewer_distance + self.z)
+    x = self.x * factor + win_width / 2
+    y = -self.y * factor + win_height / 2
+    return Point3D(x, y, self.z)
 
 # Define the box class - these will be containers which hold images and can move them around in a 3D space
 class box(object):
@@ -53,16 +65,22 @@ class box(object):
     self.width = width
     self.height = height
     self.depth = depth
-    self.position = position
+    self.position = self.move(position,0,False,False,False,False)
+    self.verts = self.updatePos(self.position)
 
-  def updatePos(self):
-    # Turn location arguments into a vector array    
-    x0 = self.position.x-(self.width/2)
-    x1 = self.position.x+(self.width/2)
-    y0 = self.position.y-(self.height/2)
-    y1 = self.position.y+(self.height/2)
-    z0 = self.position.z-(self.depth/2)
-    z1 = self.position.z+(self.depth/2)
+  def __del__(self):
+  	pass
+
+  def updatePos(self,position = Point3D(0,0,0)):
+    # Turn location arguments into a vector array
+
+    x0 = position.x-(self.width/2)
+    x1 = position.x+(self.width/2)
+    y0 = position.y-(self.height/2)
+    y1 = position.y+(self.height/2)
+    z0 = position.z-(self.depth/2)
+    z1 = position.z+(self.depth/2)
+    #print(position.x,position.y,position.z)
     self.verts = [
       Point3D(x0,y0,z0),
       Point3D(x0,y0,z1),
@@ -73,7 +91,6 @@ class box(object):
       Point3D(x1,y1,z0),
       Point3D(x1,y1,z1)
         ]
-
     return self.verts
 
   def getName(self):
@@ -85,49 +102,16 @@ class box(object):
   def __str__(self):
     return "%s is a %s of size [%f,%f,%f]" % (self.name, self.species,self.width,self.height,self.depth)
 
-  def rotate(self,angle,axis):
-  	# theta -> yz
-  	# phi   -> xz
-    self.x, self.y, self.z = float(x), float(y), float(z)
-    rad = angle*math.pi / 180
-    cosa = math.cos(rad)
-    sina = math.sin(rad)
-    if axis == 'x':
-      y = self.y * cosa - self.z * sina
-      z = self.y * sina + self.z * cosa
-      return Point3D(self.x, y, z)
-    elif axis == 'y':
-    #""" Rotates the point around the Y axis by the given angle in degrees. """
-      z = self.z * cosa - self.x * sina
-      x = self.z * sina + self.x * cosa
-      return Point3D(x, self.y, z)
-    elif axis == 'z':
-    #  """ Rotates the point around the Z axis by the given angle in degrees. """
-      x = self.x * cosa - self.y * sina
-      y = self.x * sina + self.y * cosa
-      return Point3D(x, y, self.z)
-    else:
-      print('Camera.rotate incorrect axis')
-
-  def move(self,moveUp,moveDown,moveLeft,moveRight,speed):
+  def move(self,position,speed,moveUp,moveDown,moveLeft,moveRight):
     if moveUp:
-      self.position.z += speed
+      position.z += speed
     if moveDown:
-      self.position.z -= speed
+      position.z -= speed
     if moveLeft:
-      self.position.x -= speed
+      position.x -= speed
     if moveRight:
-      self.position.x += speed
-
-  def project(self, win_width, win_height, fov, viewer_distance):
-    #""" Transforms this 3D point to 2D using a perspective projection. """
-    factor = fov / (viewer_distance + self.z)
-    x = self.x * factor + win_width / 2
-    y = self.y * factor + win_height / 2
-    return Point3D(x, y, self.z)
-
-
-
+      position.x += speed
+    return position 
   
 # Define the camera class which handles drawing the objects
 class camera(object):
@@ -145,16 +129,11 @@ class camera(object):
     self.rotspeed = rotspeed
     BLACK = [0,0,0]
     WHITE = [255,255,255]
-    # function to draw the objects to the screen
-  # def drawit(Surface, color, pointlist):
-  # 	pygame.draw.circle(windowSurface,color,(int(cam.cx)+int(x),int(cam.cy)+int(y)),3)
-  #   pygame.draw.lines(Surface, color, closed, pointlist, width=1) #prolly get errors here
-  #   pygame.draw.circles()
     
   def __str__(self):
   	return "This is a camera"
 
-  def update(self,rotUp,rotDown,rotLeft,rotRight,zoomIn,zoomOut):
+  def update(self,SwitchFocus,rotUp,rotDown,rotLeft,rotRight,zoomIn,zoomOut):
     if rotDown:
   	  self.theta -= self.rotspeed
     if rotUp:
@@ -167,14 +146,18 @@ class camera(object):
       self.r -= self.zoomspeed
     if zoomOut and self.r < 10000:
       self.r += self.zoomspeed
+    if SwitchFocus:
+      pass
 
   def drawit(self,thing,Surface,color):
 #-----------------------------------------------------
   # vector for transformed vertices
     t = []
     for v in thing.verts:
-      # Rotate the point around X axis
-      r = v.rotateX(self.theta).rotateY(self.phi)
+      # adjust verts for camera focus
+      d = v#.addX(self.focus.x).addY(self.focus.y).addZ(self.focus.z)
+      # Do camera rotations
+      r = d.rotateX(self.theta).rotateY(self.phi)
       # Transform the point from 3D to 2D
       p = r.project(Surface.get_width(), Surface.get_height(), 256, self.r)
       # Put the point in the list of transformed vertices
@@ -187,7 +170,6 @@ class camera(object):
   #   z = (t[f[0]].z + t[f[1]].z + t[f[2]].z + t[f[3]].z) / 4.0
   #   avg_z.append([i,z])
   #   i = i + 1
-
 #-------------------------------------------------
     pointlist = [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]
     for i in range(len(t)):
@@ -200,6 +182,6 @@ class camera(object):
     for i in range(len(t)):
       pointlist[i]
 
-
-
 #TODO functions moveup,down,left,right,zoomin,zoomout,rotleft,rotup,rotdown,rotright
+class Game():
+  pass

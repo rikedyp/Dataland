@@ -5,6 +5,8 @@ import numpy as np
 import math
 # set up pygame
 pygame.init()
+pygame.font.init()
+myfont = pygame.font.SysFont('Comic Sans MS', 20)
 mainClock = pygame.time.Clock()
 # set up the window
 WINDOWWIDTH = 800   
@@ -29,16 +31,21 @@ rotLeft = False
 rotRight = False
 zoomIn = False
 zoomOut = False
+SwitchFocus = False
 
 zoomfactor = 1.5
 MOVESPEED = 0.5
 MOVEANGLE = 3
-initpos = Point3D(0,0,0)
-Alice = box('Alice','Cube',2,2,2,initpos)
+Alice = box('Alice','Cube',2,2,2,Point3D(0,0,0))
+Bob = box('Bob','Cube',5,5,5,Point3D(0,0,0))
 cam = camera(WINDOWWIDTH,WINDOWHEIGHT, Alice.position, 50, 0, 0,1,5)
-
+Reset = False
 # run the game loop
 while True:
+  if Reset:
+    Alice = box('Alice','Cube',2,2,2,Point3D(0,0,0))
+    Bob = box('Bob','Cube',5,5,5,Point3D(0,0,0))
+    cam = camera(WINDOWWIDTH,WINDOWHEIGHT, Alice.position, 50, 0, 0,1,5)
   # check for events
   for event in pygame.event.get():
     if event.type == QUIT:
@@ -77,11 +84,17 @@ while True:
       if event.key == ord('d'):
         moveLeft = False
         moveRight = True
+      if event.key == ord('r'):
+        Reset = True
+      if event.key == ord('c'):
+        SwitchFocus = True
 
     if event.type == KEYUP:
       if event.key == K_ESCAPE:
         pygame.quit()
         sys.exit()
+      if event.key == ord('r'):
+        Reset = False
       if event.key == K_LEFT:
         rotLeft = False
       if event.key == K_RIGHT:
@@ -102,49 +115,34 @@ while True:
         moveLeft = False
       if event.key == ord('d'):
         moveRight = False
+      if event.key == ord('c'):
+        SwitchFocus = False
 
-  #if moveLeft:
-  #  Alice.position[1] += MOVESPEED
-  #if moveRight:
-  #  Alice.position[1] -= MOVESPEED
-  Alice.move(moveUp,moveDown,moveLeft,moveRight,MOVESPEED)
-  verts = Alice.updatePos()
-  cam.update(rotUp,rotDown,rotLeft,rotRight,zoomIn,zoomOut)
+  cam.update(SwitchFocus,rotUp,rotDown,rotLeft,rotRight,zoomIn,zoomOut) 
+  #print(Bob.position.x)
+  Alice.position = Alice.move(Alice.position,MOVESPEED,moveUp,moveDown,moveLeft,moveRight)
+  Alice.name = 'AAA'
+  Bob.name = 'BBB'
+  #print(Alice.position.x)
+  Alice.verts = Alice.updatePos(Alice.position)
   windowSurface.fill(BLACK)
   color = WHITE
-    # Calculate pointlist from box, position and size
-  # closed = True
-  # # Draw cube
-  # pointlist = np.array([[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]])
-  # i = 0
-  # for i in verts:
-  #   # rotate cube
-  #   x,y,z = cam.rotate(x,y,z)
-  #   # adjust zoom
-  #   z = z+(cam.r*math.cos(cam.theta)*math.cos(cam.phi))
-  #   if z != 0:
-  #     f = abs(200/z) #TODO AVOID DIVIDE BY ZERO - FIND SOLUTION WHICH IGNORES ASYMPTOTE
-  #     x,y = f*x,f*y
-  #     pointlist[i] = [cam.cx+x,cam.cy+y]
-  #     i += 1
-  #     if abs(x) < cam.cx and abs(y) < cam.cy:
-  #       pygame.draw.circle(windowSurface,color,(int(cam.cx)+int(x),int(cam.cy)+int(y)),3)
-  # #pygame.draw.circle(windowSurface,color,(int(cam.cx),int(cam.cy)),19)
-  # # for i in range(len(pointlist)):
-  # pygame.draw.aalines(windowSurface, color, closed, pointlist, 3) #prolly get errors here
-  # print(pointlist[0])
+  Bob.verts = Bob.updatePos(Bob.position)
   cam.drawit(Alice,windowSurface,color)
+  color = GREEN
+  cam.drawit(Bob,windowSurface,color)
+  #print(Alice.position.x,Alice.position.z)
+  #print(Bob.name,Alice.name)
+# TODO make game loop part of a class?
+#   Collision detection
+#   Path finding
+#   Make camera able to change focus to objects and maybe can use an invisible object or some moveable location to have moveable camera
+#   Make objects rotatable in gamespace (not camera space)  
 
-
-
-
-
-
-
-
-
-
-
+  # Draw on control instructions
+  text = 'Move white box: w,a,s,d,         Rotate camera up,down,left,right     Zoom camera z,x'
+  textsurface = myfont.render(text, True, (200, 200, 200))
+  windowSurface.blit(textsurface,(50,50))
   pygame.display.flip()
   mainClock.tick(40)
 
