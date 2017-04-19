@@ -51,15 +51,17 @@ class Point3D:
  
   def project(self, win_width, win_height, fov, viewer_distance):
     #    """ Transforms this 3D point to 2D using a perspective projection. """
-    factor = fov / (viewer_distance + self.z)
+    factor = fov / (viewer_distance)
     x = self.x * factor + win_width / 2
     y = -self.y * factor + win_height / 2
     return Point3D(x, y, self.z)
 
 # Define the box class - these will be containers which hold images and can move them around in a 3D space
 class box(object):
-
-  def __init__(self, name, species,width,height,depth,position):
+  _boxindex = 0
+  _boxes = []
+  _boxtypes = []
+  def __init__(self, name = 'Mr. Default', species = 'Cube',width = 5,height = 5,depth = 5,position = Point3D(0,0,0),colour = [255,255,255]):
     self.name = name
     self.species = species # e.g. sprite, goody, baddy, wall, cup, hero, frog
     self.width = width
@@ -67,9 +69,15 @@ class box(object):
     self.depth = depth
     self.position = self.move(position,0,False,False,False,False)
     self.verts = self.updatePos(self.position)
+    self._boxes.append(self)
+    self._boxtypes.append(species)
+    self._boxindex += 1
+    self.colour = colour
 
   def __del__(self):
-  	pass
+  	n = box._boxindex -1
+  	del box._boxes[n]
+  	del box._boxtypes[n]
 
   def updatePos(self,position = Point3D(0,0,0)):
     # Turn location arguments into a vector array
@@ -127,6 +135,7 @@ class camera(object):
     self.cy = height/2
     self.zoomspeed = zoomspeed
     self.rotspeed = rotspeed
+    self.pos = Point3D(0,0,r)
     BLACK = [0,0,0]
     WHITE = [255,255,255]
     
@@ -153,15 +162,36 @@ class camera(object):
 #-----------------------------------------------------
   # vector for transformed vertices
     t = []
+    vd = []
     for v in thing.verts:
       # adjust verts for camera focus
-      d = v#.addX(self.focus.x).addY(self.focus.y).addZ(self.focus.z)
+      d = v.addX(-self.focus.x).addY(-self.focus.y).addZ(-self.focus.z)
       # Do camera rotations
       r = d.rotateX(self.theta).rotateY(self.phi)
-      # Transform the point from 3D to 2D
-      p = r.project(Surface.get_width(), Surface.get_height(), 256, self.r)
+      # calculate distance from camera to thing
+      th = self.theta*math.pi/180
+      ph = self.phi*math.pi/180
+      
+      xc = self.r*math.cos(th)*math.sin(ph)
+      yc = self.r*math.sin(th)*math.sin(ph)
+      zc = self.r*math.cos(th)*math.cos(ph)
+      self.pos = Point3D(xc,yc,zc)
+      self.posrot = self.pos.rotateX(self.theta).rotateY(self.phi)
+      xd = r.x + self.posrot.x 
+      yd = r.y + self.posrot.y 
+      zd = r.z + self.posrot.z 
+      camr = np.sqrt(xd*xd+yd*yd+zd*zd)
+      viewer_distance = self.r+r.z 
+      vd.append(float(viewer_distance))
+      if viewer_distance > 0:
+        p = r.project(Surface.get_width(), Surface.get_height(), 512, viewer_distance)
+      #else p = null
       # Put the point in the list of transformed vertices
-      t.append(p)
+        t.append(p)
+    vd = sorted(vd)
+    if vd[0] < 0.8:
+      t = 'null'
+
 
   # Calculate the average Z values of each face.
   # avg_z = []
@@ -172,16 +202,18 @@ class camera(object):
   #   i = i + 1
 #-------------------------------------------------
     pointlist = [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]
+    if t == 'null':
+      return viewer_distance
     for i in range(len(t)):
       xx = int(t[i].x)
       yy = int(t[i].y)
       pointlist[i] = [xx,yy]
       pygame.draw.circle(Surface,color,(xx,yy),3)
+      
     closed = True
+    #pointlist = sorted(pointlist)
     pygame.draw.aalines(Surface,color,closed,pointlist,1)
-    for i in range(len(t)):
-      pointlist[i]
+    return viewer_distance
 
-#TODO functions moveup,down,left,right,zoomin,zoomout,rotleft,rotup,rotdown,rotright
 class Game():
   pass

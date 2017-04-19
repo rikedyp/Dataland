@@ -6,7 +6,7 @@ import math
 # set up pygame
 pygame.init()
 pygame.font.init()
-myfont = pygame.font.SysFont('Comic Sans MS', 20)
+myfont = pygame.font.SysFont('Ariel', 20)
 mainClock = pygame.time.Clock()
 # set up the window
 WINDOWWIDTH = 800   
@@ -32,26 +32,84 @@ rotRight = False
 zoomIn = False
 zoomOut = False
 SwitchFocus = False
-
-zoomfactor = 1.5
+RightClickDown = False
+LeftClickDown = False
+xdragfactor = 360/WINDOWWIDTH
+ydragfactor = 360/WINDOWHEIGHT
+zoomfactor = 10
 MOVESPEED = 0.5
-MOVEANGLE = 3
-Alice = box('Alice','Cube',2,2,2,Point3D(0,0,0))
-Bob = box('Bob','Cube',5,5,5,Point3D(0,0,0))
-cam = camera(WINDOWWIDTH,WINDOWHEIGHT, Alice.position, 50, 0, 0,1,5)
-Reset = False
+boxindex = 0
+boxmoveindex = 0
+
+# Create some stuff
+Alice = box('Alice','Cuboid',2,2,2,Point3D(0,0,0),WHITE)
+Bob = box('Bob','Cuboid',5,5,5,Point3D(0,0,0),GREEN)
+Corey = box('Corey','Cube',5,5,5,Point3D(0,0,10),[50,100,255])
+#Dave = box('Dave','Cube',100,100,100,Point3D(0,0,0),[0,255,255])
+cam = camera(WINDOWWIDTH,WINDOWHEIGHT, Alice.position, 20, 0, 0,1,5)
+
 # run the game loop
+Reset = False
 while True:
   if Reset:
-    Alice = box('Alice','Cube',2,2,2,Point3D(0,0,0))
-    Bob = box('Bob','Cube',5,5,5,Point3D(0,0,0))
-    cam = camera(WINDOWWIDTH,WINDOWHEIGHT, Alice.position, 50, 0, 0,1,5)
+    for b in range(len(box._boxes)):
+      del box._boxes[b]
+    Alice = box('Alice','Cube',2,2,8,Point3D(0,0,0))
+    Bob = box('Bob','Cube',5,5,15,Point3D(0,0,0))
+    cam = camera(WINDOWWIDTH,WINDOWHEIGHT, Alice.position, 19, 0, 0,1,5)
   # check for events
   for event in pygame.event.get():
     if event.type == QUIT:
       pygame.quit()
       sys.exit()
    
+    if event.type == pygame.MOUSEBUTTONDOWN:
+      zoomIn = False
+      zoomOut = False
+      xMouse = event.pos[0]
+      yMouse = event.pos[1]
+      if event.button == 1:
+        # left 
+        LeftClickDown = True
+      if event.button == 2:
+        # middle click
+        pass
+      if event.button == 3:
+        # right click
+        RightClickDown = True        
+      if event.button == 4:
+        # scroll no more
+        zoomIn = True
+        zoomOut = False
+      if event.button == 5:
+        zoomIn = False
+        zoomOut = True
+
+    if event.type == pygame.MOUSEBUTTONUP:
+      if event.button == 1:
+        # left click up
+        LeftClickDown = False
+        pass
+      if event.button == 2:
+        # middle click up
+        pass
+      if event.button == 3:
+        # right click up
+        RightClickDown = False
+        pass
+
+    if event.type == pygame.MOUSEMOTION:
+      if RightClickDown:
+        xrel,yrel = event.rel
+        if yrel > 0 and cam.theta > -90:
+          cam.theta -= yrel*ydragfactor
+        if yrel < 0 and cam.theta < 90:
+          cam.theta -= yrel*ydragfactor
+        #if xrel > 0 and cam.phi > -math.pi/2:
+        cam.phi -= xrel*xdragfactor
+        #if xrel < 0 and cam.phi < math.pi/2:
+        #  cam.phi -= xrel/dragfactor
+
     if event.type == KEYDOWN:
       # change the keyboard variables
       if event.key == K_LEFT:
@@ -67,8 +125,8 @@ while True:
         rotUp = False
         rotDown = True
       if event.key == ord('x'):
-      	zoomIn = True
-      	zoomOut = False
+        zoomIn = True
+        zoomOut = False
       if event.key == ord('z'):
       	zoomIn = False
       	zoomOut = True
@@ -87,7 +145,21 @@ while True:
       if event.key == ord('r'):
         Reset = True
       if event.key == ord('c'):
+        if boxindex >= len(box._boxes):
+          boxindex = 0        
+        cam.focus = box._boxes[boxindex].position
+        print(box._boxes[boxindex]) 
+        print('who is now in focus.')
+        #cam.focus = boxes
         SwitchFocus = True
+        boxindex += 1
+      if event.key == ord('v'):
+        boxmoveindex += 1
+        if boxmoveindex >= len(box._boxes):
+          boxmoveindex = 0
+        print(box._boxes[boxmoveindex])
+        print('who can now be moved')
+
 
     if event.type == KEYUP:
       if event.key == K_ESCAPE:
@@ -103,10 +175,6 @@ while True:
         rotUp = False
       if event.key == K_DOWN:
         rotDown = False
-      if event.key == ord('x'):
-        zoomIn = False
-      if event.key == ord('z'):
-        zoomOut = False
       if event.key == ord('w'):
         moveUp = False
       if event.key == ord('s'):
@@ -117,32 +185,54 @@ while True:
         moveRight = False
       if event.key == ord('c'):
         SwitchFocus = False
+      if event.key == ord('x'):
+        zoomIn = False
+      if event.key == ord('z'):
+        zoomOut = False
 
   cam.update(SwitchFocus,rotUp,rotDown,rotLeft,rotRight,zoomIn,zoomOut) 
   #print(Bob.position.x)
-  Alice.position = Alice.move(Alice.position,MOVESPEED,moveUp,moveDown,moveLeft,moveRight)
-  Alice.name = 'AAA'
-  Bob.name = 'BBB'
-  #print(Alice.position.x)
-  Alice.verts = Alice.updatePos(Alice.position)
+  #print(box._boxes[boxindex].position.x)
+  print(boxindex)
+  print(boxmoveindex)
+  
   windowSurface.fill(BLACK)
   color = WHITE
-  Bob.verts = Bob.updatePos(Bob.position)
-  cam.drawit(Alice,windowSurface,color)
   color = GREEN
-  cam.drawit(Bob,windowSurface,color)
-  #print(Alice.position.x,Alice.position.z)
-  #print(Bob.name,Alice.name)
+  box._boxes[boxmoveindex].position = box._boxes[boxmoveindex].move(box._boxes[boxmoveindex].position,MOVESPEED,moveUp,moveDown,moveLeft,moveRight)
+  
+  # print(cam.theta,cam.phi,cam.r)
+  # print('ok')
+  # Corey = box('Corey','Bean',3,ss3,3,Point3D(0,0,0))
+
+  # print(box._boxes)
+  # print(' ')
+  # print(box._boxtypes)
+
+  # print('Bob is dead')
+  # print(box._boxes)
+  # print(' ')
+  # print(box._boxtypes)
 # TODO make game loop part of a class?
 #   Collision detection
 #   Path finding
-#   Make camera able to change focus to objects and maybe can use an invisible object or some moveable location to have moveable camera
+#   Make boxes easily creatable and destroyable within game loop or whatever
 #   Make objects rotatable in gamespace (not camera space)  
 
+#   Make movement focus changeable
+
   # Draw on control instructions
-  text = 'Move white box: w,a,s,d,         Rotate camera up,down,left,right     Zoom camera z,x'
+  text = 'Move white box: w,a,s,d,         Rotate camera: up,down,left,right, right click and drag   '
   textsurface = myfont.render(text, True, (200, 200, 200))
   windowSurface.blit(textsurface,(50,50))
+  text = 'Reset: r,                 ss       Zoom camera: z,x,scroll'
+  textsurface = myfont.render(text, True, (200, 200, 200))
+  windowSurface.blit(textsurface,(50,80))
+  #print(cam.pos.z - Alice.position.z)#38
+  #print(viewerdist)
+  for b in range(len(box._boxes)):
+    #box._boxes[b].updatePos(box._boxes[b].position)
+    cam.drawit(box._boxes[b],windowSurface,box._boxes[b].colour)
   pygame.display.flip()
   mainClock.tick(40)
 
