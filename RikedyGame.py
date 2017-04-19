@@ -75,7 +75,7 @@ class box(object):
     self.colour = colour
 
   def __del__(self):
-  	n = box._boxindex -1
+  	n = box._boxes.index(self)
   	del box._boxes[n]
   	del box._boxtypes[n]
 
