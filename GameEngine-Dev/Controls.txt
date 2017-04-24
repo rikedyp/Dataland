@@ -1,0 +1,18 @@
+Toggle 3D game, 2D game     p
+Quit                        Esc
+
+Controls 3D
+
+Move			    		          W A S D
+Move Camera			            Up Down Left Right			Right click and drag
+Fullscreen Toggle		        f
+Zoom in / out			          x / z						      	Scroll up / down
+Switch camera		            e
+Switch movebox	           	q
+
+Controls 2D
+
+Move dude				            W A S D
+Switch movedude	             b
+
+
