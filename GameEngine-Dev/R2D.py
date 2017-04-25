@@ -12,6 +12,8 @@
 # learn when i really need to use object class type
 # pygame display flip or refresh?
 # Make dude movement more flexible?
+# 2D static world with moveable camera thing
+# Make things outside screen not drawn
 
 # -------------------------Program ---------------------------------
 import math, sys, pygame, pyganim
@@ -75,6 +77,7 @@ class Scene2D(object):
             if event.type == KEYUP:
                 if event.key == ord('b'):
                     self.maindude = next(self.dudelist)
+                    self.camdude = self.maindude
                 if event.key == ord('w'):
                     maindude.moveUp = False
                 if event.key == ord('a'):
@@ -130,7 +133,7 @@ class SceneTransferer(pygame.Rect):
     def __init__(self, name, newscene, location, width=50, height=100, method='collide'):
         self.name = name
         self.location = Point2D(location[0],location[1])
-        self.center = (600,100)
+        self.center = (location[0],location[1])
         self.width = width
         self.height = height
         self.method = method
@@ -173,29 +176,39 @@ class layer(pygame.sprite.Group):
                     pass
                    # print('other thing')
             # Test for collisions
+            # TODO - Make collision system more adaptable / general
             if type(self.things[t]) == SceneTransferer:
                 if self.things[t].colliderect(scene.maindude.rect):
-                    print('Scene Transferer collision')
+                    # print('Scene Transferer collision')
+                    scene.maindude.move(scene.maindude.Dir, True, False, False, False, 20)
+                    scene.maindude.moveRight = False
+                    scene.maindude.moveUp = False
+                    scene.maindude.moveDown = False
+                    scene.maindude.moveLeft = False
+                    scene.maindude.moveRight = False
                     self.things[t].newscene.play(Surface)
 
-            # Draw stuff
+            # Draw stuff onto screen
             cx = scene.WindowWidth/2
             cy = scene.WindowHeight/2
-            windowpos = (int(cx+self.things[t].location.x),int(cy-self.things[t].location.y))
-            pygame.draw.circle(Surface,[0,0,0],windowpos,6)
+            camloc = scene.camdude.location
+            windowpos = (int(cx+self.things[t].location.x-camloc.x),int(cy+self.things[t].location.y-camloc.y))
+            #pygame.draw.circle(Surface,[255,255,255],windowpos,6)
+            #pygame.draw.circle(Surface,[255,255,255],(int(self.things[t].location.x),int(self.things[t].location.y)),6)
             if self.things[t].idleframes != None:
                 #print('drawing')
                 #print(self.things[t])
                 self.things[t].animation.play()
                 #s = t.image.get_size()
                 s = self.things[t].size
+                #spritepos = (self.things[t].location.x-s.x/2,self.things[t].location.y-s.y/2)
                 spritepos = (windowpos[0]-s.x/2,windowpos[1]-s.y/2)
+                #spritepos = (cx-camloc.x,cy-camloc.y)
                 #print(spritepos)
                 self.things[t].animation.blit(Surface, spritepos)
-                pygame.draw.rect(Surface, [180,0,0], self.things[t].rect)#.move(cx, cy))
+                pygame.draw.rect(Surface, [180,0,0], self.things[t].rect.move(cx-camloc.x,cy-camloc.y))
             if type(self.things[t]) == SceneTransferer:
-                pygame.draw.rect(Surface, self.things[t].colour,self.things[t])
-        
+                pygame.draw.rect(Surface, self.things[t].colour,self.things[t].move(cx-camloc.x,cy-camloc.y))
 
 
 class dude(pygame.sprite.Sprite):
@@ -212,7 +225,7 @@ class dude(pygame.sprite.Sprite):
         self.moveDown = False
         self.moveLeft = False
         self.moveRight = False
-        self.moveSpeed = 8
+        self.moveSpeed = 3
         if idleframes == None:
             self.size = Point2D(float(1),float(1))
         else:
@@ -252,10 +265,10 @@ class dude(pygame.sprite.Sprite):
 
     def move(self, Prev, Up, Down, Left, Right, speed):
         if Up:
-            self.location.y += speed
+            self.location.y -= speed
             self.rect = self.rect.move(0,-speed)
         if Down:
-            self.location.y -= speed
+            self.location.y += speed
             self.rect = self.rect.move(0,speed)
         if Left:
             self.location.x -= speed

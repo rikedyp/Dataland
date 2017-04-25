@@ -19,18 +19,16 @@ for i in range(6):
     path = 'Ninja/4x/swim_%i.png' % (i)
     ninja = (path, 100)
     sframes.append(ninja)
-# ninstand = pyganim.PygAnimation(iframes)
-# ninrun = pyganim.PygAnimation(nframes)
-# ninswim = pyganim.PygAnimation(sframes)
 
 g = Game(800,600)
 
 s1 = Scene2D(g)
 Alice = dude('Alice',[0,0],iframes,nframes)
-Bob = dude('Bob',[200,200],iframes,sframes)
+Bob = dude('Bob',[200,-100],iframes,sframes)
 s1.addDude(Alice, 'layer_0')
 s1.addDude(Bob,'layer_0')
 s1.maindude = Alice
+s1.camdude = Alice
 g.addScene(s1)
 
 s2 = Scene3D(g)
@@ -42,7 +40,7 @@ s2.movebox = Corey
 s2.focusbox = Dave
 g.addScene(s2)
 
-ST = SceneTransferer('ST', s2, [400,200], )
+ST = SceneTransferer('ST', s2, [200,100], )
 s1.addSceneTransferer(ST)
 
 g.play()

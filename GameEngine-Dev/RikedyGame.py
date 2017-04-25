@@ -18,6 +18,7 @@
 # Set controls within game menu
 # Use bluetooth controller option
 # Do 3D scenes
+# Put proper comments everywhere
 
 # ---------------------- - METHOD -------------------------
 

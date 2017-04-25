@@ -76,7 +76,7 @@ class Point3D:
 # Define the box class - these will be containers which hold images and can move them around in a 3D space
 class box(object):
 
-    def __init__(self, name='Mr. Default', colour=[255,255,255], position=Point3D(0,0,0), speed=5, width=5, height=5, depth=5, species='Cube'):
+    def __init__(self, name='Mr. Default', colour=[255,255,255], position=Point3D(0,0,0), speed=2, width=5, height=5, depth=5, species='Cube'):
         self.name = name
         self.species = species # e.g. sprite, goody, baddy, wall, cup, hero, frog
         self.width = width
