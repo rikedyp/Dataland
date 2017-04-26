@@ -14,11 +14,14 @@
 # Make dude movement more flexible?
 # 2D static world with moveable camera thing
 # Make things outside screen not drawn
+# Use load image convert thing
 
 # -------------------------Program ---------------------------------
 import math, sys, pygame, pyganim
 from itertools import cycle
 from RikedyGame import * # hmmmmmmmmmmmm?????
+import pytmx
+from pytmx.util_pygame import load_pygame
 
 class Point2D:
     def __init__(self, x=0, y=0):
@@ -41,6 +44,11 @@ class Point2D:
         y = self.x * sina + self.y * cosa
         return Point2D(x, y)
 
+class Map(object):
+
+    def __init__(self, scene, tmxmap):
+    pass
+
 class Scene2D(object):
 
     def __init__(self, game, name='Untitled Scene2D'):
@@ -52,6 +60,9 @@ class Scene2D(object):
         self._layers = dict()
         self.addLayer()
         self.playscene = False
+
+    def loadMap(self, mapfile):
+        tmxdata = load_pygame(mapfile)
 
     def transferScene(self, newscene):
         self.playscene = False

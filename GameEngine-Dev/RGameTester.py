@@ -23,6 +23,7 @@ for i in range(6):
 g = Game(800,600)
 
 s1 = Scene2D(g)
+s1.loadMap('Maps/untitled.tmx')
 Alice = dude('Alice',[0,0],iframes,nframes)
 Bob = dude('Bob',[200,-100],iframes,sframes)
 s1.addDude(Alice, 'layer_0')
