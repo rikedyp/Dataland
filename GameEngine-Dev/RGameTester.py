@@ -2,7 +2,6 @@
 # chalkboard program to test the RikedyGame Engine
 from RikedyGame import *
 
-baselayer = layer(0)
 iframes = []
 nframes = []
 sframes = []
@@ -20,28 +19,42 @@ for i in range(6):
     ninja = (path, 100)
     sframes.append(ninja)
 
-g = Game(800,600)
 
-s1 = Scene2D(g)
-s1.loadMap('Maps/untitled.tmx')
-Alice = dude('Alice',[0,0],iframes,nframes)
-Bob = dude('Bob',[200,-100],iframes,sframes)
-s1.addDude(Alice, 'layer_0')
-s1.addDude(Bob,'layer_0')
-s1.maindude = Alice
-s1.camdude = Alice
+g = Game(800, 640)
+mapfile = 'Maps/untitled.tmx'
+s1 = Scene2D(g, mapfile)
+Alice = Dude('Alice',iframes,nframes)
+#Bob = dude('Bob',[200,-100],iframes,sframes)
+s1.addDude(Alice, True)
+#s1.addDude(Bob,'layer_0')
 g.addScene(s1)
 
 s2 = Scene3D(g)
-Corey = box('Corey', [200,200,0])
-Dave = box('Dave',[200,200,200],Point3D(10,0,0))
-s2.addBox(Corey)
-s2.addBox(Dave)
-s2.movebox = Corey
-s2.focusbox = Dave
+Green = box('Green', [0,255,0])
+#self, name='Mr. Default', colour=[255,255,255], position=Point3D(0,0,0), speed=1, width=5, height=5, depth=5, species='Cube'
+Purple = box('Purple',[100,20,200],Point3D(10,0,60), 2, 8, 8, 8)
+Red = box('Red', [255,50,50], Point3D(30,0,50), 1, 5, 10, 5, 'Cuboid')
+White = box('White', [240,240,240], Point3D(-100,0,0), 5, 10, 10, 10)
+Pink = box('Pink', [255,100,255], Point3D(10,0,0), 3)
+Blue = box('Blue', [0,100,255], Point3D(50,0,50), 3, 50, 50, 50)
+
+s2.addBox(Green)
+s2.addBox(Purple)
+s2.addBox(Red)
+s2.addBox(White)
+s2.addBox(Pink)
+s2.addBox(Blue)
+s2.movebox = Green
+s2.focusbox = Green
 g.addScene(s2)
 
-ST = SceneTransferer('ST', s2, [200,100], )
-s1.addSceneTransferer(ST)
+# ST = SceneTransferer('ST', s2, [400,100], )
+# s1.addSceneTransferer(ST)
+# if __name__ == "__main__":
 
+#     try:
+#         g.play
+#     except:
+#         pygame.quit()
+#         raise
 g.play()

@@ -1,305 +1,366 @@
-# R2D.py 
-# Contains methods relating to 2D scenes in RikedyGame Engine
+""" Quest - An epic journey.
 
-# ------------------------ TO DO -----------------------------------
+Contains methods relating to 2D scenes in RikedyGame Engine
 
-# 2D pathfinding
-# Collisions, walls, level map implementation and interactable objects an NPCs
-# Double check pygame.sprite is being used to its full usefulness
-# Is sprite killing convenient and clean?
-# Easy creating and deleting items and furniture
-# maybe do it in layers so different layers don't interact - makes 2D platformers possible
-# learn when i really need to use object class type
-# pygame display flip or refresh?
-# Make dude movement more flexible?
-# 2D static world with moveable camera thing
-# Make things outside screen not drawn
-# Use load image convert thing
+------------------------ TO DO -----------------------------------
 
-# -------------------------Program ---------------------------------
-import math, sys, pygame, pyganim
-from itertools import cycle
-from RikedyGame import * # hmmmmmmmmmmmm?????
-import pytmx
+2D pathfinding
+Learn to use loggings
+Collisions, walls, level map implementation and interactable objects an NPCs
+Double check pygame.sprite is being used to its full usefulness
+Is sprite killing convenient and clean?
+learn when i really need to use object class type
+pygame display flip or refresh?
+Make dude movement more flexible?
+Use load image convert thing
+End of scene reset option
+Compare methods with pyscroll quest.py
+Try to make more efficient
+Change text depending on input type
+
+-------------------------Program ---------------------------------
+"""
+import os.path
+import sys
+
+import pygame, pyganim
+from pygame.locals import *
 from pytmx.util_pygame import load_pygame
 
-class Point2D:
-    def __init__(self, x=0, y=0):
-        self.x, self.y = float(x), float(y)
+import pyscroll
+import pyscroll.data
+from pyscroll.group import PyscrollGroup
 
-    def addX(self,newpos):
-        x = self.x + newpos
-        return Point2D(x, self.y)
+# define configuration variables here
+RESOURCES_DIR = 'data'
 
-    def addY(self,newpos):
-        y = self.y + newpos
-        return Point2D(self.x, y)
- 
-    def rotate(self, angle):
-        """ Rotates the point around the point (0,0) by the given angle in degrees. """
-        rad = angle * math.pi / 180
-        cosa = math.cos(rad)
-        sina = math.sin(rad)
-        x = self.x * cosa - self.y * sina
-        y = self.x * sina + self.y * cosa
-        return Point2D(x, y)
+DUDE_MOVE_SPEED = 200  # pixels per second
+MAP_FILENAME = 'Maps/untitled.tmx'
 
-class Map(object):
 
-    def __init__(self, scene, tmxmap):
-    pass
+# simple wrapper to keep the screen resizeable
+def init_screen(width, height):
+    screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
+    return screen
+
+
+# make loading maps a little easier
+def get_map(filename):
+    return os.path.join(RESOURCES_DIR, filename)
+
+
+# make loading images a little easier
+def load_image(filename):
+    return pygame.image.load(os.path.join(RESOURCES_DIR, filename))
+
+
+class Dude(pygame.sprite.Sprite):
+    """ Our Dude
+
+    The Dude has three collision rects, one for the whole sprite "rect" and
+    "old_rect", and another to check collisions with walls, called "feet".
+
+    The position list is used because pygame rects are inaccurate for
+    positioning sprites; because the values they get are 'rounded down'
+    as integers, the sprite would move faster moving left or up.
+
+    Feet is 1/2 as wide as the normal rect, and 8 pixels tall.  This size size
+    allows the top of the sprite to overlap walls.  The feet rect is used for
+    collisions, while the 'rect' rect is used for drawing.
+
+    There is also an old_rect that is used to reposition the sprite if it
+    collides with level walls.
+    """
+
+    def __init__(self, name, idleframes=None, walkframes=None, position=[0, 0], velocity=[0, 0]):
+        self.name = name
+        pygame.sprite.Sprite.__init__(self)
+        self.velocity = [0, 0]
+        self._position = [0, 0]
+        self._old_position = self.position
+        # Do sprite image stuff - Gonna use Ninjas to start
+        if idleframes != None:
+            self.idleanim = pyganim.PygAnimation(idleframes)
+            self.walkanim = pyganim.PygAnimation(walkframes)
+        #else:
+        self.current_animation = self.idleanim
+        self.idleanim.play()
+        self.walkanim.play()
+        #self.image = self.idleanim._images[0]
+        #self.rect = self.image.get_rect()
+        #self.rect = self.image.get_rect()
+        self.feet = pygame.Rect(0, 0, self.rect.width * .5, 8)
+        self.dir = 'right'
+
+    @property
+    def image(self):
+        return self.current_animation.getCurrentFrame()
+
+    @property
+    def rect(self):
+        self._update_rect()
+        return self._rect
+
+    def _update_rect(self):
+        self._rect = self.current_animation.getRect()
+        self._rect.topleft = self.position
+
+    @property
+    def position(self):
+        return list(self._position)
+
+    @position.setter
+    def position(self, value):
+        self._position = list(value)
+
+    def update(self, dt):
+
+        self._old_position = self._position[:]
+        self._position[0] += self.velocity[0] * dt
+        self._position[1] += self.velocity[1] * dt
+        if abs(self.velocity[0]) > 0 or abs(self.velocity[1]) > 0:
+            self.current_animation = self.walkanim
+        else:
+            self.current_animation = self.idleanim
+        if self.velocity[0] < 0 and self.dir == 'right':
+            self.walkanim.flip(True, False)
+            self.idleanim.flip(True, False) # Consolidate into function or property method thing
+            self.dir = 'left'
+        if self.velocity[0] > 0 and self.dir == 'left':
+            self.walkanim.flip(True, False)
+            self.idleanim.flip(True, False)
+            self.dir = 'right'
+        self.image
+        self.rect.topleft = self._position
+        self.feet.midbottom = self.rect.midbottom
+        #print('moving maindude')
+    def move_back(self, dt):
+        """ If called after an update, the sprite can move back
+        """
+        self._position = self._old_position
+        self.rect.topleft = self._position
+        self.feet.midbottom = self.rect.midbottom
+
 
 class Scene2D(object):
+    """ This class is a 2D game level
 
-    def __init__(self, game, name='Untitled Scene2D'):
-        #self.number = scenenumber
-        self.WindowWidth, self.WindowHeight = game.WindowWidth, game.WindowHeight
-        self._dudes = pygame.sprite.Group()
-        self.dudelist = cycle(self._dudes)
+    This class will load data, create a pyscroll group, a dude object.
+    It also reads input and moves the Dude around the map.
+    Finally, it uses a pyscroll group to render the map and Dude.
+    """
+    filename = get_map(MAP_FILENAME)
+
+    def __init__(self, game, mapfile, name='Untitled Scene2D'):
+        self.game = game
         self.name = name
-        self._layers = dict()
-        self.addLayer()
+        self.screen = self.game.windowSurface
+
+        # true while playscene
         self.playscene = False
 
-    def loadMap(self, mapfile):
-        tmxdata = load_pygame(mapfile)
+        # load data from pytmx
+        tmx_data = load_pygame(mapfile)
 
-    def transferScene(self, newscene):
-        self.playscene = False
-        newscene.playscene = True
-        # newscene.play()
-        pass
+        # setup level geometry with simple pygame rects, loaded from pytmx
+        self.walls = list()
+        for object in tmx_data.objects:
+            self.walls.append(pygame.Rect(
+                object.x, object.y,
+                object.width, object.height))
 
-    def getInput(self, maindude):
-        for event in pygame.event.get():
-            if event.type == KEYDOWN:
-                if event.key == ord('w'):
-                    maindude.moveUp = True
-                    maindude.moveDown = False
-                if event.key == ord('a'):
-                    maindude.moveLeft = True
-                    maindude.moveRight = False
-                if event.key == ord('s'):
-                    maindude.moveDown = True
-                    maindude.moveUp = False
-                if event.key == ord('d'):
-                    maindude.moveRight = True
-                    maindude.moveLeft = False
-            if event.type == KEYUP:
-                if event.key == ord('b'):
-                    self.maindude = next(self.dudelist)
-                    self.camdude = self.maindude
-                if event.key == ord('w'):
-                    maindude.moveUp = False
-                if event.key == ord('a'):
-                    maindude.moveLeft = False
-                if event.key == ord('s'):
-                    maindude.moveDown = False
-                if event.key == ord('d'):
-                    maindude.moveRight = False
-                if event.key == ord('p'):
-                    playscene = False
-                if event.key == K_ESCAPE:
-                    pygame.quit()
-                    sys.exit() 
-                if event.key == ord('f'):
-                        if self.game.windowSurface.get_flags() & FULLSCREEN:
-                            self.game.windowSurface = pygame.display.set_mode((self.WindowWidth, self.WindowHeight))
-                        else:
-                            self.game.windowSurface = pygame.display.set_mode((self.WindowWidth, self.WindowHeight),pygame.FULLSCREEN)
-                if event.key == ord('p'):
-                        self.playscene = False
-                        
+        # create new data source for pyscroll
+        map_data = pyscroll.data.TiledMapData(tmx_data)
 
-    def addThing(self, thing):
-        pass
+        # create new renderer (camera)
+        self.map_layer = pyscroll.BufferedRenderer(map_data, self.screen.get_size(), clamp_camera=True)
+        self.map_layer.zoom = 2
 
-    def addLayer(self):
-        i = len(self._layers)
-        layername = 'layer_%i' % (i)
-        newlayer = layer(i)
-        self._layers[layername] = newlayer
+        # pyscroll supports layered rendering.  our map has 3 'under' layers
+        # layers begin with 0, so the layers are 0, 1, and 2.
+        # since we want the sprite to be on top of layer 1, we set the default
+        # layer for sprites as 2
+        self.group = PyscrollGroup(map_layer=self.map_layer, default_layer=2)
 
-    def addDude(self, dude, layer='layer_0', location=[0,0]):
-        # Add dude to scene
-        #xpos = random.randint(-self.WindowWidth/2,self.WindowWidth/2)
-        #ypos = random.randint(-self.WindowHeight/2,self.WindowHeight/2)
-        self._dudes.add(dude)
-        self._layers[layer].add(dude)
-        self.dudelist = cycle(self._dudes)
+        # # put the dude in the center of the map
+        # self.dude.position = self.map_layer.map_rect.center
+        # self.dude._position[0] -= 200
+        # self.dude._position[1] += 400
 
-    def addSceneTransferer(self, sceneTransferer, layer='layer_0'):
-        self._layers[layer].add(sceneTransferer)
 
-    def play(self, Surface):
-        self.playscene = True
-        while self.playscene:
-            self.getInput(self.maindude)
-            for l in self._layers:
-                self._layers[l].draw([255,0,0],Surface,self)
-            pygame.display.flip()
+    def addDude(self, dude, maindude=False):
+        # add our dude to the scene's group
+        self.group.add(dude)
+        if maindude:
+            self.maindude = dude
 
-class SceneTransferer(pygame.Rect):
-    # method: collide, collide_and_key, click
-    def __init__(self, name, newscene, location, width=50, height=100, method='collide'):
-        self.name = name
-        self.location = Point2D(location[0],location[1])
-        self.center = (location[0],location[1])
-        self.width = width
-        self.height = height
-        self.method = method
-        self.newscene = newscene
+    def draw(self, surface):
 
-        self.moveUp = False
-        self.moveDown = False
-        self.moveLeft = False
-        self.moveRight = False
-        self.idleframes = None
-        self.animation = self
-        self.colour = [0,100,200]
+        # center the map/screen on our main dude
+        self.group.center(self.maindude.rect.center)
 
-class layer(pygame.sprite.Group):
+        # draw the map and all sprites
+        self.group.draw(surface)
 
-    def __init__(self,number):
-        self.number = number
-        self.things = dict()
-        self.BG = None
-
-    def add(self,thing):
-        self.things[thing.name] = thing
-
-    def remove(self,thing):
-        del self.things[thing.name]
-
-    def draw(self,colour,Surface,scene):
-        if self.number == 0:
-            # Draw background
-            Surface.fill([0,0,0])
-            # Movement and animation
-        for t in self.things:
-            if self.things[t].moveUp or self.things[t].moveDown or self.things[t].moveLeft or self.things[t].moveRight:
-                self.things[t].animation = self.things[t].walkanim
-                self.things[t].move(self.things[t].Dir,self.things[t].moveUp,self.things[t].moveDown,self.things[t].moveLeft,self.things[t].moveRight,self.things[t].moveSpeed)
+    def getInput(self, ps4):
+        """ Handle pygame input events
+        """
+        if ps4 != None:
+            axis, button, hat = ps4.listen()
+            if axis == None:
+                pass#return #print('No axis')
             else:
-                if type(self.things[t].animation) == pyganim.PygAnimation:
-                    self.things[t].animation = self.things[t].idleanim
+                # Move left right (Left stick)
+                if axis[0] == None:
+                    pass
+                elif axis[0] < 0:
+                    self.maindude.velocity[0] = -DUDE_MOVE_SPEED*-axis[0]
+                elif axis[0] > 0:
+                    self.maindude.velocity[0] = DUDE_MOVE_SPEED*axis[0]
+                elif axis[0] == 0:
+                    self.maindude.velocity[0] = 0
                 else:
                     pass
-                   # print('other thing')
-            # Test for collisions
-            # TODO - Make collision system more adaptable / general
-            if type(self.things[t]) == SceneTransferer:
-                if self.things[t].colliderect(scene.maindude.rect):
-                    # print('Scene Transferer collision')
-                    scene.maindude.move(scene.maindude.Dir, True, False, False, False, 20)
-                    scene.maindude.moveRight = False
-                    scene.maindude.moveUp = False
-                    scene.maindude.moveDown = False
-                    scene.maindude.moveLeft = False
-                    scene.maindude.moveRight = False
-                    self.things[t].newscene.play(Surface)
+                # Move up down (Left stick)
+                if axis[1] == None:
+                    pass
+                elif axis[1] < 0:
+                    self.maindude.velocity[1] = -DUDE_MOVE_SPEED*-axis[1]
+                elif axis[1] > 0:
+                    self.maindude.velocity[1] = DUDE_MOVE_SPEED*axis[1]
+                elif axis[1] == 0:
+                    self.maindude.velocity[1] = 0
+                else:
+                    pass
 
-            # Draw stuff onto screen
-            cx = scene.WindowWidth/2
-            cy = scene.WindowHeight/2
-            camloc = scene.camdude.location
-            windowpos = (int(cx+self.things[t].location.x-camloc.x),int(cy+self.things[t].location.y-camloc.y))
-            #pygame.draw.circle(Surface,[255,255,255],windowpos,6)
-            #pygame.draw.circle(Surface,[255,255,255],(int(self.things[t].location.x),int(self.things[t].location.y)),6)
-            if self.things[t].idleframes != None:
-                #print('drawing')
-                #print(self.things[t])
-                self.things[t].animation.play()
-                #s = t.image.get_size()
-                s = self.things[t].size
-                #spritepos = (self.things[t].location.x-s.x/2,self.things[t].location.y-s.y/2)
-                spritepos = (windowpos[0]-s.x/2,windowpos[1]-s.y/2)
-                #spritepos = (cx-camloc.x,cy-camloc.y)
-                #print(spritepos)
-                self.things[t].animation.blit(Surface, spritepos)
-                pygame.draw.rect(Surface, [180,0,0], self.things[t].rect.move(cx-camloc.x,cy-camloc.y))
-            if type(self.things[t]) == SceneTransferer:
-                pygame.draw.rect(Surface, self.things[t].colour,self.things[t].move(cx-camloc.x,cy-camloc.y))
+            if button == None:
+                #print('NONE')
+                pass
+            else:
+                if button[1]: # Square
+                    pass
+                if button[3]: # Triangle
+                    pass
+                if button[8]: # Share
+                    pygame.quit()
+                    sys.exit()
+                if button[9]: # Options
+                    while button[9]:
+                        axis, button, hat = ps4.listen()
+                    self.playscene = False
+
+                #print(button)
+
+            for event in pygame.event.get():
+                # this will be handled if the window is resized
+                if event.type == VIDEORESIZE:
+                    init_screen(event.w, event.h)
+                    self.map_layer.set_size((event.w, event.h))
 
 
-class dude(pygame.sprite.Sprite):
-    # define classwide attributes
-    # The group of alive dudes
-    _dudes = pygame.sprite.Group()
 
-    def __init__(self,name,location=[0,0], idleframes=None, walkframes=None):
-        # define per-instance attributes
-        super().__init__() #adding super call to make dude a pygame Sprite
-        #pygame.sprite.Sprite.__init__(self, dude._dudes) # super call adding dude to _dudes 
-        self.name = name
-        self.moveUp = False
-        self.moveDown = False
-        self.moveLeft = False
-        self.moveRight = False
-        self.moveSpeed = 3
-        if idleframes == None:
-            self.size = Point2D(float(1),float(1))
+
+            # elif axis[0] == None:
+            #     movebox.moveRight = False
+            #     movebox.moveLeft = False
+            # elif axis[0] < 0:
+            #     movebox.moveLeft = True
+            #     movebox.moveRight = False
+            # elif axis[0] > 0:
+            #     movebox.moveRight = True
+            #     movebox.moveLeft = False
+            # elif axis[0] == 0:
+            #     movebox.moveRight = False
+            #     movebox.moveLeft = False
+
         else:
-            size = pygame.image.load(idleframes[0][0]).get_size()
-        self.size = Point2D(float(size[0]),float(size[1]))
-        self.location =  Point2D(float(location[0]),float(location[1]))
-        dude._dudes.add(self) # IS THIS NEEDED?
-        # Do sprite image stuff - Gonna use Ninjas to start
-        self.idleframes = idleframes
-        self.walkframes = walkframes
-        if idleframes != None:
-            self.idleanim = pyganim.PygAnimation(self.idleframes)
-            self.walkanim = pyganim.PygAnimation(self.walkframes)
-        #else:
-        self.image = self.idleframes[0]
-        print(self.size)
-        self.framecounter = 0
-        self.animation = self.idleanim
-        self.rect = pygame.Rect(self.location.x, self.location.y, self.size.x/5, self.size.y/5)
-        self.Dir = 'Right'
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    self.playscene = False
 
-    def __del__(self):
-        #del layer._layers[]
-        dude._dudes.remove(self)
+                if event.type == KEYDOWN:
+                    if event.key == ord('w'):
+                        self.maindude.velocity[1] = -DUDE_MOVE_SPEED
+                    if event.key == ord('a'):
+                        self.maindude.velocity[0] = -DUDE_MOVE_SPEED
+                    if event.key == ord('s'):
+                        self.maindude.velocity[1] = DUDE_MOVE_SPEED
+                    if event.key == ord('d'):
+                        self.maindude.velocity[0] = DUDE_MOVE_SPEED
+                    if event.key == ord('x'):
+                        self.map_layer.zoom += .25
+                    if event.key == ord('z'):
+                        value = self.map_layer.zoom - .25
+                        if value > 0:
+                            self.map_layer.zoom = value
 
-    def dudewalk(self):
-        self.animation = self.walkanim
+                if event.type == KEYUP:
+                    if event.key == ord('w'):
+                        self.maindude.velocity[1] = 0
+                    if event.key == ord('a'):
+                        self.maindude.velocity[0] = 0
+                    if event.key == ord('s'):
+                        self.maindude.velocity[1] = 0
+                    if event.key == ord('d'):
+                        self.maindude.velocity[0] = 0
+                    if event.key == K_ESCAPE:
+                        pygame.quit()
+                        sys.exit() 
 
-    def dudestand(self):
-  	    self.animation = self.idleanim
+                    if event.key == ord('p'):
+                        self.playscene = False
 
-    def makedude(self):
-  	    pass
+                # this will be handled if the window is resized
+                if event.type == VIDEORESIZE:
+                    init_screen(event.w, event.h)
+                    self.map_layer.set_size((event.w, event.h))
 
-    def __str__(self):
-  	    return "%s is a dude" % (self.name)
+    def update(self, dt):
+        """ Tasks that occur over time should be handled here
+        """
+        self.group.update(dt)
 
-    def move(self, Prev, Up, Down, Left, Right, speed):
-        if Up:
-            self.location.y -= speed
-            self.rect = self.rect.move(0,-speed)
-        if Down:
-            self.location.y += speed
-            self.rect = self.rect.move(0,speed)
-        if Left:
-            self.location.x -= speed
-            self.rect = self.rect.move(-speed,0)
-            if Prev == 'Right':
-                self.Dir = 'Left'
-                #self.animation.flip(True,False)   
-                self.idleanim.flip(True,False)
-                self.walkanim.flip(True,False) 
-        if Right:
-            self.location.x += speed
-            self.rect = self.rect.move(speed,0)
-            if Prev == 'Left':
-                self.Dir = 'Right'
-                #self.animation.flip(True,False)
-                self.idleanim.flip(True,False)
-                self.walkanim.flip(True,False) 
-        
+        # check if the sprite's feet are colliding with wall
+        # sprite must have a rect called feet, and move_back method,
+        # otherwise this will fail
+        for sprite in self.group.sprites():
+            if sprite.feet.collidelist(self.walls) > -1:
+                sprite.move_back(dt)
 
+    def play(self, ps4):
+        """ Run the game loop
+        """
+        clock = pygame.time.Clock()
+        self.playscene = True
+        clock.tick(1500) # wait for playscene = false signal to go (ps4 button thing)
+        from collections import deque
+        times = deque(maxlen=30)
 
-      	
-  	
+        try:
+            while self.playscene:
+                dt = clock.tick(120) / 1000.
+                times.append(clock.get_fps())
+                Surface = self.screen
+                self.getInput(ps4)
+                self.update(dt)
+                self.draw(Surface)
+
+                # Write instruction text
+                text = 'Move dude:   w a s d' 
+                textsurface = self.game.myfont.render(text, True, (20, 20, 20))
+                Surface.blit(textsurface,(50,50))
+                text = 'Zoom in/out:    x/z'
+                textsurface = self.game.myfont.render(text, True, (20, 20, 20))
+                Surface.blit(textsurface,(50,80))  
+                text = 'Next scene:     p' 
+                textsurface = self.game.myfont.render(text, True, (20, 20, 20))
+                Surface.blit(textsurface,(50,130)) 
+                text = 'Quit:           Esc' 
+                textsurface = self.game.myfont.render(text, True, (20, 20, 20))
+                Surface.blit(textsurface,(50,145)) 
+
+                pygame.display.flip()
+
+        except KeyboardInterrupt:
+            self.playscene = False
 

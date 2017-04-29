@@ -1,1 +1,51 @@
 This folder contains development files for the RikedyGame Engine
+
+The RikedyGame Engine currently consists of 3 Core files and 1 Demo/Tester file
+
+RikedyGame.py -     To contain the main game engine stuff and setup pygame and other stuff
+R2D.py -            Methods pertaining to 2D games, uses pyganim for animation and pyscroll for using Tiled maps
+R3D.py -            Methods pertaining to 3D games, currently just has cubes and a sort of camera
+RGameTester.py -    Demo for a particular game made from the engine, currently just switches between a 2D runaround and a Cube world
+
+Dependencies:
+
+    python3
+    pygame
+    pyganim
+    pyscroll
+    pytmx
+
+    itertools*
+
+* might come with python already
+
+might be some missing dependencies here - intend to check
+
+
+
+With a keyboard (default) input, the instructions are displayed on the screen when the demo is played
+ >python3 RGameTester.py
+
+                                                    PS4 CONTROLLER
+
+The RGameTester.py can be used with a ps4 dualshock controller connected via blutooth using pygame.joystick
+
+Controls:
+
+2D Ninja:
+
+    Move dude:          Left stick
+    Next scene:         Options
+    Quit:               Share
+
+3D boxes:
+
+    Toggle fullscreen:  Up arrowpad
+
+    Move box:           Left stick
+    Move camera:        Right stick
+    Switch movebox:     X
+    Switch focusbox:    Triangle
+    Zoom in/out:        R2 / L2
+    Next scene:         Options
+    Quit:               Share

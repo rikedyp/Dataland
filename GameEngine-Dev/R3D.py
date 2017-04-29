@@ -76,7 +76,7 @@ class Point3D:
 # Define the box class - these will be containers which hold images and can move them around in a 3D space
 class box(object):
 
-    def __init__(self, name='Mr. Default', colour=[255,255,255], position=Point3D(0,0,0), speed=2, width=5, height=5, depth=5, species='Cube'):
+    def __init__(self, name='Mr. Default', colour=[255,255,255], position=Point3D(0,0,0), speed=1, width=5, height=5, depth=5, species='Cube'):
         self.name = name
         self.species = species # e.g. sprite, goody, baddy, wall, cup, hero, frog
         self.width = width
@@ -90,6 +90,7 @@ class box(object):
         self.moveDown = False
         self.moveRight = False
         self.moveLeft = False
+        self.screenpos = []
 
     def __del__(self):
         pass
@@ -163,7 +164,7 @@ class box(object):
 # Define the Camera class which handles drawing the objects
 class Camera(object):
 
-    def __init__(self, width, height, zoomspeed=1, rotspeed=3, focus=Point3D(0,0,0), r=20, theta=0, phi=0):
+    def __init__(self, width, height, zoomspeed=1, rotspeed=2.5, focus=Point3D(0,0,0), r=20, theta=0, phi=0):
         self.width = width
         self.height = height
         self.focus = focus
@@ -175,6 +176,7 @@ class Camera(object):
         self.zoomspeed = zoomspeed
         self.rotspeed = rotspeed
         self.pos = Point3D(0,0,r)
+        #self.screenpos = []
 
         BLACK = [0,0,0] #???
         WHITE = [255,255,255]
@@ -185,15 +187,17 @@ class Camera(object):
     def switchFocus(self, box):
         self.focus = box.position
 
-    def update(self, cameramotion):
+    def update(self, cameramotion, rotspeed=None):
+        if rotspeed == None:
+            rotspeed = self.rotspeed
         if cameramotion[0]:
-            self.theta += self.rotspeed
+            self.theta += rotspeed
         if cameramotion[1]:
-            self.theta -= self.rotspeed
+            self.theta -= rotspeed
         if cameramotion[2]: 
-            self.phi -= self.rotspeed
+            self.phi -= rotspeed
         if cameramotion[3]:
-            self.phi += self.rotspeed
+            self.phi += rotspeed
         if cameramotion[4] and self.r > 3:
             self.r -= self.zoomspeed
         if cameramotion[5] and self.r < 10000:
@@ -203,24 +207,25 @@ class Camera(object):
         # vector for transformed vertices
         t = []
         vd = []
+        screenpos = []
         for v in thing.verts:
             # adjust verts for Camera focus
             d = v.addX(-self.focus.x).addY(-self.focus.y).addZ(-self.focus.z)
             # Do Camera rotations
             r = d.rotateX(self.theta).rotateY(self.phi)
-            # calculate distance from Camera to thing
-            th = self.theta*math.pi/180
-            ph = self.phi*math.pi/180
+            # # calculate distance from Camera to thing
+            # th = self.theta*math.pi/180
+            # ph = self.phi*math.pi/180
         
-            xc = self.r*math.cos(th)*math.sin(ph)
-            yc = self.r*math.sin(th)*math.sin(ph)
-            zc = self.r*math.cos(th)*math.cos(ph)
-            self.pos = Point3D(xc,yc,zc)
-            self.posrot = self.pos.rotateX(self.theta).rotateY(self.phi)
-            xd = r.x + self.posrot.x 
-            yd = r.y + self.posrot.y 
-            zd = r.z + self.posrot.z 
-            camr = math.sqrt(xd*xd+yd*yd+zd*zd)
+            # xc = self.r*math.cos(th)*math.sin(ph)
+            # yc = self.r*math.sin(th)*math.sin(ph)
+            # zc = self.r*math.cos(th)*math.cos(ph)
+            # self.pos = Point3D(xc,yc,zc)
+            # self.posrot = self.pos.rotateX(self.theta).rotateY(self.phi)
+            # xd = r.x + self.posrot.x 
+            # yd = r.y + self.posrot.y 
+            # zd = r.z + self.posrot.z 
+            # camr = math.sqrt(xd*xd+yd*yd+zd*zd)
             viewer_distance = self.r+r.z 
             vd.append(float(viewer_distance))
             if viewer_distance > 0:
@@ -247,17 +252,20 @@ class Camera(object):
             xx = int(t[i].x)
             yy = int(t[i].y)
             pointlist[i] = [xx,yy]
+            screenpos.append([xx,yy])
             pygame.draw.circle(Surface,colour,(xx,yy),3)
       
         closed = True
         #pointlist = sorted(pointlist)
         pygame.draw.aalines(Surface,colour,closed,pointlist,1)
-        return viewer_distance
+        return screenpos
 
 class Scene3D(object):
 
     def __init__(self, game, name='Untitled Scene3D'):
         #self.number = scenenumber
+        self.game = game
+        self.screen = self.game.windowSurface
         self.WindowWidth, self.WindowHeight = game.WindowWidth, game.WindowHeight
         self.game = game
         self._boxes = dict()
@@ -277,142 +285,349 @@ class Scene3D(object):
         self.LeftClickDown = False
         self.RightClickDown = False
 
-    def getInput(self, movebox):
+    def getInput(self, movebox, ps4):
+        if ps4 != None:
+            axis, button, hat = ps4.listen()
+            if axis == None:
+                pass#return #print('No axis')
+            else:
+                # Move left right (Left stick)
+                if axis[0] == None:
+                    pass
+                elif axis[0] < 0:
+                    movebox.move(movebox.speed*-axis[0], False, False, True, False)
+                elif axis[0] > 0:
+                    movebox.move(movebox.speed*axis[0], False, False, False, True)
+                elif axis[0] == 0:
+                    movebox.moveLeft = False
+                    movebox.moveRight = False
+                else:
+                    pass
+                # Move up down (Left stick)
+                if axis[1] == None:
+                    pass
+                elif axis[1] < 0:
+                    movebox.move(movebox.speed*-axis[1], True, False, False, False)
+                elif axis[1] > 0:
+                    movebox.move(movebox.speed*axis[1], False, True, False, False)
+                elif axis[1] == 0:
+                    movebox.moveUp = False
+                    movebox.moveDown = False
+                else:
+                    pass
+                # Rotate camera left right (Right stick)
+                if axis[2] == None:
+                    pass
+                elif axis[2] < 0:
+                    cameramotion = [False, False, True, False, False, False]
+                    self.camera.update(cameramotion, self.camera.rotspeed*-axis[2])
+                    # self.rotLeft = False
+                    # self.rotRight = False
+                elif axis[2] > 0:
+                    cameramotion = [False, False, False, True, False, False]
+                    self.camera.update(cameramotion, self.camera.rotspeed*axis[2])
+                    # self.rotLeft = False
+                    # self.rotRight = True
+                elif axis[2] == 0:
+                    self.rotLeft = False
+                    self.rotRight = False
+                else:
+                    pass
+                # Rotate camera up and down
+                if axis[5] == None:
+                    pass
+                elif axis[5] < 0:
+                    cameramotion = [True, False, False, False, False, False]
+                    self.camera.update(cameramotion, self.camera.rotspeed*axis[5])
+                    # self.rotUp = True
+                    # self.rotDown = False
+                elif axis[5] > 0:
+                    cameramotion = [False, True, False, False, False, False]
+                    self.camera.update(cameramotion, self.camera.rotspeed*-axis[5])
+                    # self.rotUp = False
+                    # self.rotDown = True
+                elif axis[5] == 0:
+                    self.rotUp = False
+                    self.rotDown = False
+                else:
+                    pass
 
-        for event in pygame.event.get():
+            if hat != {}:
+                #print(hat[0])
+                if hat[0] == (0,1):
+                    while hat[0] == (0,1):
+                        axis, button, hat = ps4.listen()
+                    if self.game.windowSurface.get_flags() & FULLSCREEN:
+                        self.game.windowSurface = pygame.display.set_mode((self.WindowWidth, self.WindowHeight))
+                    else:
+                        self.game.windowSurface = pygame.display.set_mode((self.WindowWidth, self.WindowHeight),pygame.FULLSCREEN)
+            else:
+                pass
 
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    zoomIn = False
-                    zoomOut = False
-                    xMouse = event.pos[0]
-                    yMouse = event.pos[1]
-                    if event.button == 1:
-                        # left 
-                        self.LeftClickDown = True
-                    if event.button == 2:
-                        # middle click
-                        pass
-                    if event.button == 3:
-                        # right click
-                        self.RightClickDown = True        
-                    if event.button == 4:
-                        # Scroll up
 
-                        self.camera.update([self.rotUp, self.rotDown, self.rotLeft, self.rotRight, True, False]) 
-                    if event.button == 5:
-                        # Scroll down
-                        self.camera.update([self.rotUp, self.rotDown, self.rotLeft, self.rotRight, False, True]) 
+            if button == None:
+                #print('NONE')
+                pass
+            else:
+                if button[1]: # X
+                    while button[1]:
+                        axis, button, hat = ps4.listen()
+                    self.movebox = self._boxes[next(self._boxlist)]
+                    print('Move box')
+                    print(self.movebox.name)
+                if button[3]: # Triangle
+                    while button[3]:
+                        axis, button, hat = ps4.listen()
+                    self.focusbox = self._boxes[next(self._boxlist)]
+                    self.camera.switchFocus(self.focusbox)
+                    print('Focus box')
+                    print(self.focusbox.name)
+                if button[6]: # R2
+                    self.zoomOut = True
+                if not button[6]:
+                    self.zoomOut = False
+                if button[7]: # R2
+                    self.zoomIn = True
+                if not button[7]:
+                    self.zoomIn = False
+                if button[8]: # Share
+                    while button[8]:
+                        axis, button, hat = ps4.listen()
+                    pygame.quit()
+                    sys.exit()
+                if button[9]: # Options
+                    while button[9]:
+                        axis, button, hat = ps4.listen()
+                    self.playscene = False
 
-                if event.type == pygame.MOUSEBUTTONUP:
-                    if event.button == 1:
-                        # left click up
-                        self.LeftClickDown = False
-                    if event.button == 2:
-                        # middle click up
-                        pass
-                    if event.button == 3:
-                        # right click up
-                        self.RightClickDown = False
+                #print(button)
 
-                if event.type == pygame.MOUSEMOTION:
-                    if self.RightClickDown:
-                        xrel,yrel = event.rel
-                        self.camera.theta -= yrel/self.camera.rotspeed
-                        #if xrel > 0 and cam.phi > -math.pi/2:
-                        self.camera.phi -= xrel/self.camera.rotspeed
-                        #if xrel < 0 and cam.phi < math.pi/2:
-                        #  cam.phi -= xrel/dragfactor
 
-                if event.type == KEYDOWN:
-                    if event.key == K_LEFT:
-                        self.rotRight = False
-                        self.rotLeft = True
-                    if event.key == K_RIGHT:
-                        self.rotLeft = False
-                        self.rotRight = True
-                    if event.key == K_UP:
-                        self.rotDown = False
-                        self.rotUp = True
-                    if event.key == K_DOWN:
-                        self.rotUp = False
-                        self.rotDown = True
-                    if event.key == ord('x'):
-                        self.zoomIn = True
-                        self.zoomOut = False
-                    if event.key == ord('z'):
-                        self.zoomIn = False
-                        self.zoomOut = True
-                    if event.key == ord('w'):
-                        movebox.moveUp = True
-                        movebox.moveDown = False
-                    if event.key == ord('a'):
-                        movebox.moveLeft = True
-                        movebox.moveRight = False
-                    if event.key == ord('s'):
-                        movebox.moveDown = True
-                        movebox.moveUp = False
-                    if event.key == ord('d'):
-                        movebox.moveRight = True
-                        movebox.moveLeft = False
-                    if event.key == ord('r'):
-                        Reset = True
 
-                if event.type == KEYUP:
-                    # General keys ---------------------------------------
-                    if event.key == ord('w'):
-                        movebox.moveUp = False
-                    if event.key == ord('a'):
-                        movebox.moveLeft = False
-                    if event.key == ord('s'):
-                        movebox.moveDown = False
-                    if event.key == ord('d'):
-                        movebox.moveRight = False
-                    if event.key == K_ESCAPE:
-                        pygame.quit()
-                        sys.exit() 
-                    if event.key == ord('r'):
-                        Reset = False
-                    if event.key == K_LEFT:
-                        self.rotLeft = False
-                    if event.key == K_RIGHT:
-                        self.rotRight = False
-                    if event.key == K_UP:
-                        self.rotUp = False
-                    if event.key == K_DOWN:
-                        self.rotDown = False
-                    if event.key == ord('x'):
-                        self.zoomIn = False
-                    if event.key == ord('z'):
-                        self.zoomOut = False
-                    if event.key == ord('f'):
-                        if self.game.windowSurface.get_flags() & FULLSCREEN:
-                            self.game.windowSurface = pygame.display.set_mode((self.WindowWidth, self.WindowHeight))
-                        else:
-                            self.game.windowSurface = pygame.display.set_mode((self.WindowWidth, self.WindowHeight),pygame.FULLSCREEN)
-                    # Game keys --------------------------------------
-                    if event.key == ord('q'):
-                        self.movebox = self._boxes[next(self._boxlist)]
-                    if event.key == ord('e'):
-                        self.camera.switchFocus(self._boxes[next(self._boxlist)])
-                    if event.key == ord('p'):
-                        self.playscene = False
+
+            # elif axis[0] == None:
+            #     movebox.moveRight = False
+            #     movebox.moveLeft = False
+            # elif axis[0] < 0:
+            #     movebox.moveLeft = True
+            #     movebox.moveRight = False
+            # elif axis[0] > 0:
+            #     movebox.moveRight = True
+            #     movebox.moveLeft = False
+            # elif axis[0] == 0:
+            #     movebox.moveRight = False
+            #     movebox.moveLeft = False
+
+        else:
+
+            for event in pygame.event.get():
+
+                    # Keyboard and mouse events
+
+                    if event.type == pygame.MOUSEBUTTONDOWN:
+                        zoomIn = False
+                        zoomOut = False
+                        xMouse = event.pos[0]
+                        yMouse = event.pos[1]
+                        if event.button == 1:
+                            # left 
+                            self.LeftClickDown = True
+                        if event.button == 2:
+                            # middle click
+                            pass
+                        if event.button == 3:
+                            # right click
+                            self.RightClickDown = True        
+                        if event.button == 4:
+                            # Scroll up
+
+                            self.camera.update([self.rotUp, self.rotDown, self.rotLeft, self.rotRight, True, False]) 
+                        if event.button == 5:
+                            # Scroll down
+                            self.camera.update([self.rotUp, self.rotDown, self.rotLeft, self.rotRight, False, True]) 
+
+                    if event.type == pygame.MOUSEBUTTONUP:
+                        if event.button == 1:
+                            # left click up
+                            self.LeftClickDown = False
+                        if event.button == 2:
+                            # middle click up
+                            pass
+                        if event.button == 3:
+                            # right click up
+                            self.RightClickDown = False
+
+                    if event.type == pygame.MOUSEMOTION:
+                        if self.RightClickDown:
+                            xrel,yrel = event.rel
+                            self.camera.theta -= yrel/self.camera.rotspeed
+                            #if xrel > 0 and cam.phi > -math.pi/2:
+                            self.camera.phi -= xrel/self.camera.rotspeed
+                            #if xrel < 0 and cam.phi < math.pi/2:
+                            #  cam.phi -= xrel/dragfactor
+
+                    if event.type == KEYDOWN:
+                        if event.key == K_LEFT:
+                            self.rotRight = False
+                            self.rotLeft = True
+                        if event.key == K_RIGHT:
+                            self.rotLeft = False
+                            self.rotRight = True
+                        if event.key == K_UP:
+                            self.rotDown = False
+                            self.rotUp = True
+                        if event.key == K_DOWN:
+                            self.rotUp = False
+                            self.rotDown = True
+                        if event.key == ord('x'):
+                            self.zoomIn = True
+                            self.zoomOut = False
+                        if event.key == ord('z'):
+                            self.zoomIn = False
+                            self.zoomOut = True
+                        if event.key == ord('w'):
+                            movebox.moveUp = True
+                            movebox.moveDown = False
+                        if event.key == ord('a'):
+                            movebox.moveLeft = True
+                            movebox.moveRight = False
+                        if event.key == ord('s'):
+                            movebox.moveDown = True
+                            movebox.moveUp = False
+                        if event.key == ord('d'):
+                            movebox.moveRight = True
+                            movebox.moveLeft = False
+                        if event.key == ord('r'):
+                            Reset = True
+
+                    if event.type == KEYUP:
+                        # General keys ---------------------------------------
+                        if event.key == ord('w'):
+                            movebox.moveUp = False
+                        if event.key == ord('a'):
+                            movebox.moveLeft = False
+                        if event.key == ord('s'):
+                            movebox.moveDown = False
+                        if event.key == ord('d'):
+                            movebox.moveRight = False
+                        if event.key == K_ESCAPE:
+                            pygame.quit()
+                            sys.exit() 
+                        if event.key == ord('r'):
+                            Reset = False
+                        if event.key == K_LEFT:
+                            self.rotLeft = False
+                        if event.key == K_RIGHT:
+                            self.rotRight = False
+                        if event.key == K_UP:
+                            self.rotUp = False
+                        if event.key == K_DOWN:
+                            self.rotDown = False
+                        if event.key == ord('x'):
+                            self.zoomIn = False
+                        if event.key == ord('z'):
+                            self.zoomOut = False
+                        if event.key == ord('f'):
+                            if self.game.windowSurface.get_flags() & FULLSCREEN:
+                                self.game.windowSurface = pygame.display.set_mode((self.WindowWidth, self.WindowHeight))
+                            else:
+                                self.game.windowSurface = pygame.display.set_mode((self.WindowWidth, self.WindowHeight),pygame.FULLSCREEN)
+                        # Game keys --------------------------------------
+                        if event.key == ord('q'):
+                            self.movebox = self._boxes[next(self._boxlist)]
+                        if event.key == ord('e'):
+                            self.camera.switchFocus(self._boxes[next(self._boxlist)])
+                        if event.key == ord('p'):
+                            self.playscene = False
 
     def addBox(self, box, location=[0,0]):
         # Add box to scene
         self._boxes[box.name] = box
         self._boxlist = cycle(self._boxes)
 
-    def play(self, Surface):
+    def play(self, ps4):
         # probably self.playscene
+        self.clock = self.game.mainClock
+        self.clock.tick(1000) # wait for playscene = false signal to go (ps4 button thing)
+        #self.ps4 = ps4
         self.playscene = True
-
+        Surface = self.screen
         while self.playscene:
+
             Surface.fill([0,0,0])
-            self.getInput(self.movebox)
+            text = 'Move movebox:   w a s d' 
+            textsurface = self.game.myfont.render(text, True, (20, 200, 20))
+            Surface.blit(textsurface,(50,50))
+            text = 'Move camera:    Up Down Left Right'
+            textsurface = self.game.myfont.render(text, True, (20, 200, 20))
+            Surface.blit(textsurface,(50,65))
+            text = 'Zoom in/out:    x/z'
+            textsurface = self.game.myfont.render(text, True, (20, 200, 20))
+            Surface.blit(textsurface,(50,80))
+            text = 'Switch movebox:     q'
+            textsurface = self.game.myfont.render(text, True, (20, 200, 20))
+            Surface.blit(textsurface,(50,95))
+            text = 'Switch focusbox:    e' 
+            textsurface = self.game.myfont.render(text, True, (20, 200, 20))
+            Surface.blit(textsurface,(50,110))   
+            text = 'Next scene:     p' 
+            textsurface = self.game.myfont.render(text, True, (20, 200, 20))
+            Surface.blit(textsurface,(50,130)) 
+            text = 'Quit:           Esc' 
+            textsurface = self.game.myfont.render(text, True, (20, 200, 20))
+            Surface.blit(textsurface,(50,145)) 
+            text = 'Fullscreen:     f' 
+            textsurface = self.game.myfont.render(text, True, (20, 200, 20))
+            Surface.blit(textsurface,(50,160)) 
+
+            self.getInput(self.movebox, ps4)
             self.movebox.move()
             cameramotion = [self.rotUp, self.rotDown, self.rotLeft, self.rotRight, self.zoomIn, self.zoomOut]
             self.camera.update(cameramotion)
             for box in self._boxes:
                 self._boxes[box].updateVerts(self._boxes[box].position)
-                self.camera.drawit(self._boxes[box], Surface, self._boxes[box].colour)
+                self._boxes[box].screenpos = self.camera.drawit(self._boxes[box], Surface, self._boxes[box].colour)
+            # check for perspective collisions with camera focus box and move box
+            # get focusbox screen positions
+            if type(self.focusbox.screenpos) != float:
+                for i in range(len(self.focusbox.screenpos)):
+                    x = self.focusbox.screenpos[i][0]
+                    y = self.focusbox.screenpos[i][1]
+                    self.focusbox.screenpos[i] = [int(x), int(y)]
+                focusboxverts = map(tuple, self.focusbox.screenpos)
+            else:
+                pass#print('Focus box floater')
+            # move box screen positions
+            if type(self.movebox.screenpos) != float:
+                for i in range(len(self.movebox.screenpos)):
+                    x = self.movebox.screenpos[i][0]
+                    y = self.movebox.screenpos[i][1]
+                    self.movebox.screenpos[i] = [int(x), int(y)]    
+                moveboxverts = map(tuple, self.movebox.screenpos)
+            else:
+                pass#print('Move box floater')
+            # compare all the boxes
+            for box in self._boxes:
+                if type(self._boxes[box].screenpos) == float:
+                    pass#print('Other box floater')
+                elif type(self._boxes[box].screenpos) == list:
+                    for i in range(len(self._boxes[box].verts)):
+                        x = self._boxes[box].screenpos[i][0]
+                        y = self._boxes[box].screenpos[i][1]
+                        self._boxes[box].screenpos[i] = [int(x),int(y)]
+                        #self._boxes[box].screenpos[i,0] = int(self._boxes[box].screenpos[i,0])
+                    #boxverts = map(int, self._boxes[box].screenpos)
+                    boxverts = map(tuple, self._boxes[box].screenpos)
+                    #focusboxverts = map(tuple, self.focusbox.screenpos)
+                    #moveboxverts = map(tuple, self.movebox.screenpos)
+                    if box != self.focusbox.name:
+                        if set(boxverts).intersection(focusboxverts):
+                            print('Focus box perspective event')
+                            print(box)
+                    if box != self.movebox.name:
+                        if set(boxverts).intersection(moveboxverts):
+                            print('Move box perspective event')
+                            print(box)
+            # Refresh the display   
+                     
             pygame.display.flip()
