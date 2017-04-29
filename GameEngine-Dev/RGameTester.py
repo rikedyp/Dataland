@@ -20,7 +20,7 @@ for i in range(6):
     sframes.append(ninja)
 
 
-g = Game(800, 640)
+g = Game(800, 600)
 mapfile = 'Maps/untitled.tmx'
 s1 = Scene2D(g, mapfile)
 Alice = Dude('Alice',iframes,nframes)
