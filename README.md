@@ -4,11 +4,11 @@ TODO:
 
 There are file-specific and some general TODOs in each .py file
 TODO: 
---- Consolidate / Organise general & file-specific TODOs
---- Put installation instructions and prerequesite installs in this file
---- Find a way to make games into single executables and/or learn how to install games on windows / mac / linux
---- browser playable?
---- ps3 / xbox / joypad / joycon / wiimote support?
+- Consolidate / Organise general & file-specific TODOs
+- Put installation instructions and prerequesite installs in this file
+- Find a way to make games into single executables and/or learn how to install games on windows / mac / linux
+- browser playable?
+- ps3 / xbox / joypad / joycon / wiimote support?
 
 Current known prerequesites:
 - pygame
