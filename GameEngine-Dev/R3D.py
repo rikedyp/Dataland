@@ -87,6 +87,9 @@ class box(object):
         self.depth = depth
         self.position = position
         self.speed = speed
+        self.wiggle = False
+        self.figure8 = False
+        self.t = 0
         self.verts = self.updateVerts(self.position)
         self.colour = colour
         self.moveUp = False
@@ -94,20 +97,30 @@ class box(object):
         self.moveRight = False
         self.moveLeft = False
         self.screenpos = []
+        
 
     def __del__(self):
         pass
 
     def updateVerts(self,position = Point3D(0,0,0)):
+        #print('updateVerts')
         # Turn location arguments into a vector array
-
         x0 = position.x-(self.width/2)
         x1 = position.x+(self.width/2)
         y0 = position.y-(self.height/2)
         y1 = position.y+(self.height/2)
         z0 = position.z-(self.depth/2)
         z1 = position.z+(self.depth/2)
-
+        # if self.wiggle:
+        #     #print('wiggle')
+        #     x0 += 0.1*math.sin(self.t)#*math.cos(self.t)
+        #     x1 += 0.1*math.cos(self.t)
+        #     y0 += 0.1*math.sin(self.t)
+        #     y1 -= 0.1*math.sin(self.t)#*math.cos(self.t)
+        #     z0 -= 0.1*math.cos(self.t)
+        #     z1 += 0.1*math.sin(self.t)
+        #     self.t += 0.1
+            #print(self.t)
         self.verts = [
         Point3D(x0,y0,z0),
         Point3D(x1,y0,z0),
@@ -118,6 +131,31 @@ class box(object):
         Point3D(x0,y1,z1),        
         Point3D(x1,y1,z1)
             ]
+        if self.wiggle:
+            i = 0
+            while i < 8:
+                self.verts[i].x += 1*math.sin(self.t)
+                self.verts[i+1].x += 1*math.cos(self.t)
+                self.verts[i].y -= 1*math.sin(self.t)
+                self.verts[i+1].y += 1*math.cos(self.t)
+                self.verts[i].z -= 1*math.sin(self.t)
+                self.verts[i+1].z -= 1*math.cos(self.t)
+                self.t += 0.03
+                i += 2
+        if self.figure8:
+            #a = 0
+            #b = 0
+            #((a*a))
+            t = self.t
+            for i in range(7):
+                self.verts[i].x = i+3*math.sin(t)#((self.t**2)-1)/((self.t**2)+1)
+                self.verts[i].y = i+3*math.sin(t)*math.cos(t)#(2*self.t*((self.t**2)-1))/(((self.t**2)+1)**2)
+            self.t += 0.02
+
+            #while i < 2:
+
+        
+        
         return self.verts
 
     def getName(self):
@@ -130,6 +168,7 @@ class box(object):
         return "%s is a %s of size [%f,%f,%f]" % (self.name, self.species,self.width,self.height,self.depth)
 
     def move(self, speed=None, moveUp=None, moveDown=None, moveLeft=None, moveRight=None):
+        #print('move')
         position = self.position
         if speed == None:
             speed = self.speed
@@ -163,7 +202,7 @@ class box(object):
         else:
             pass
         self.position = position
-  
+      
 # Define the Camera class which handles drawing the objects
 class Camera(object):
 
@@ -465,7 +504,7 @@ class Scene3D(object):
                             #  cam.phi -= xrel/dragfactor
 
                     if event.type == KEYDOWN:
-                        if event.key == K_LEFT:
+                        if event.key == K_LEFT: # Camera motions
                             self.rotRight = False
                             self.rotLeft = True
                         if event.key == K_RIGHT:
@@ -483,7 +522,8 @@ class Scene3D(object):
                         if event.key == ord('z'):
                             self.zoomIn = False
                             self.zoomOut = True
-                        if event.key == ord('w'):
+                        if event.key == ord('w'): # Moveable box motions
+                            print('w')
                             movebox.moveUp = True
                             movebox.moveDown = False
                         if event.key == ord('a'):
@@ -497,6 +537,13 @@ class Scene3D(object):
                             movebox.moveLeft = False
                         if event.key == ord('r'):
                             Reset = True
+                        # Animation keys
+                        if event.key == ord('v'): # Make a vortex box wiggle
+                            print ('v')
+                            self.movebox.wiggle = True
+                        if event.key == ord('b'): # Make a vortex box wiggle
+                            print ('b')
+                            self.movebox.figure8 = True
 
                     if event.type == KEYUP:
                         # General keys ---------------------------------------
@@ -530,6 +577,11 @@ class Scene3D(object):
                                 self.game.windowSurface = pygame.display.set_mode((self.WindowWidth, self.WindowHeight))
                             else:
                                 self.game.windowSurface = pygame.display.set_mode((self.WindowWidth, self.WindowHeight),pygame.FULLSCREEN)
+                        # Animation keys
+                        if event.key == ord('v'): # Make a vortex box wiggle
+                            self.movebox.wiggle = False
+                        if event.key == ord('b'): # Make a vortex box wiggle
+                            self.movebox.figure8 = False
                         # Game keys --------------------------------------
                         # --- SUBROUTINE THESE --------
                         if event.key == ord('q'):
@@ -598,6 +650,10 @@ class Scene3D(object):
             text = 'Current focus:  %s' % (self.focusbox.name)
             textsurface = self.game.myfont.render(text, True, (20, 200, 20))
             Surface.blit(textsurface,(300,65))
+            fps = self.game.mainClock.get_fps()
+            text = 'FPS:  %3.2f' % (fps)
+            textsurface = self.game.myfont.render(text, True, (20, 200, 20))
+            Surface.blit(textsurface,(300,80))
 
             self.getInput(self.movebox, ps4)
             self.movebox.move()
@@ -606,7 +662,7 @@ class Scene3D(object):
             for box in self._boxes:
                 self._boxes[box].updateVerts(self._boxes[box].position)
                 self._boxes[box].screenpos = self.camera.drawit(self._boxes[box], Surface, self._boxes[box].colour)
-            # check for perspective collisions with camera focus box and move box
+            # check for perspective collisions with camera focus box and move box # this doesn't seem efficient?
             # get focusbox screen positions
             if type(self.focusbox.screenpos) != float:
                 for i in range(len(self.focusbox.screenpos)):
@@ -699,5 +755,6 @@ class Scene3D(object):
                             print('Move box width not defined')
                             print(smoveboxverts)
             # Refresh the display   
-                     
+            # FPS
+
             pygame.display.flip()
