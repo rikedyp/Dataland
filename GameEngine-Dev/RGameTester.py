@@ -37,19 +37,19 @@ Red = box('Red', [255,50,50], Point3D(30,0,50), 1, 5, 10, 5, 'Cuboid')
 White = box('White', [240,240,240], Point3D(-100,0,0), 5, 10, 10, 10)
 Pink = box('Pink', [255,100,255], Point3D(10,0,0), 3)
 Blue = box('Blue', [0,100,255], Point3D(50,0,50), 3, 50, 50, 50)
-
+Figure8 = box('Figure8', [100,220,50], Point3D(50,50,50), 3, 50, 60, 70, 'Vortex')
 s2.addBox(Green)
 s2.addBox(Purple)
 s2.addBox(Red)
 s2.addBox(White)
 s2.addBox(Pink)
 s2.addBox(Blue)
+s2.addBox(Figure8)
 
 # for i in range(100):
 # 	limename = 'Lime%i' % (i)
 # 	Lime = box(limename, [132,226,10], Point3D(i*30*math.cos(i*math.pi/7),i*30*math.sin(i*math.pi/4),i*70), 15, 65, 65, 65)
 # 	s2.addBox(Lime)
-
 s2.movebox = Green
 s2.focusbox = Green
 g.addScene(s2)
