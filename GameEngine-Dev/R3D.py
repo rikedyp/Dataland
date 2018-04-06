@@ -135,7 +135,7 @@ class box(object):
             i = 0
             while i < 8:
                 self.verts[i].x += 1*math.sin(self.t)
-                self.verts[i+1].x += 1*math.cos(self.t)
+                self.verts[i+1].x += 1*math.sin(self.t)*math.cos(self.t)
                 self.verts[i].y -= 1*math.sin(self.t)
                 self.verts[i+1].y += 1*math.cos(self.t)
                 self.verts[i].z -= 1*math.sin(self.t)
@@ -147,9 +147,10 @@ class box(object):
             #b = 0
             #((a*a))
             t = self.t
-            for i in range(7):
-                self.verts[i].x = i+3*math.sin(t)#((self.t**2)-1)/((self.t**2)+1)
-                self.verts[i].y = i+3*math.sin(t)*math.cos(t)#(2*self.t*((self.t**2)-1))/(((self.t**2)+1)**2)
+            for i in range(8):
+                self.verts[i].x = position.x+self.width*math.sin(t+i)#((self.t**2)-1)/((self.t**2)+1)
+                self.verts[i].y = position.y+self.height*math.sin(t+i)*math.cos(t+i)#(2*self.t*((self.t**2)-1))/(((self.t**2)+1)**2)
+                self.verts[i].z = position.z+self.width*math.sin(t+i)
             self.t += 0.02
 
             #while i < 2:
@@ -643,6 +644,12 @@ class Scene3D(object):
             text = 'Fullscreen:     f' 
             textsurface = self.game.myfont.render(text, True, (20, 200, 20))
             Surface.blit(textsurface,(50,160)) 
+            text = 'Wiggle box:     v' 
+            textsurface = self.game.myfont.render(text, True, (20, 200, 20))
+            Surface.blit(textsurface,(50,175))
+            text = 'Figure 8:     b' 
+            textsurface = self.game.myfont.render(text, True, (20, 200, 20))
+            Surface.blit(textsurface,(50,190))
 
             text = 'Current movebox:   %s' % (self.movebox.name) 
             textsurface = self.game.myfont.render(text, True, (20, 200, 20))
@@ -650,15 +657,14 @@ class Scene3D(object):
             text = 'Current focus:  %s' % (self.focusbox.name)
             textsurface = self.game.myfont.render(text, True, (20, 200, 20))
             Surface.blit(textsurface,(300,65))
-            fps = self.game.mainClock.get_fps()
-            text = 'FPS:  %3.2f' % (fps)
-            textsurface = self.game.myfont.render(text, True, (20, 200, 20))
-            Surface.blit(textsurface,(300,80))
+            
+            
 
             self.getInput(self.movebox, ps4)
             self.movebox.move()
             cameramotion = [self.rotUp, self.rotDown, self.rotLeft, self.rotRight, self.zoomIn, self.zoomOut]
             self.camera.update(cameramotion)
+
             for box in self._boxes:
                 self._boxes[box].updateVerts(self._boxes[box].position)
                 self._boxes[box].screenpos = self.camera.drawit(self._boxes[box], Surface, self._boxes[box].colour)
@@ -756,5 +762,13 @@ class Scene3D(object):
                             print(smoveboxverts)
             # Refresh the display   
             # FPS
-
+            self.game.mainClock.tick()
+            time = pygame.time.get_ticks()
+            text = 'Time:  %3.2f' % (time)
+            textsurface = self.game.myfont.render(text, True, (20, 200, 20))
+            Surface.blit(textsurface,(300,80))
+            fps = self.game.mainClock.get_fps()
+            text = 'FPS:  %3.2f' % (fps)
+            textsurface = self.game.myfont.render(text, True, (20, 200, 20))
+            Surface.blit(textsurface,(300,95))
             pygame.display.flip()

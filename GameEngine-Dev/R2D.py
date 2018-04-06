@@ -75,7 +75,7 @@ class Dude(pygame.sprite.Sprite):
         self.name = name
         pygame.sprite.Sprite.__init__(self)
         self.velocity = [0, 0]
-        self._position = [0, 0]
+        self._position = position
         self._old_position = self.position
         # Do sprite image stuff - Gonna use Ninjas to start
         if idleframes != None:
@@ -160,17 +160,19 @@ class Scene2D(object):
 
         # load data from pytmx
         tmx_data = load_pygame(mapfile)
+        # create new data source for pyscroll
+        map_data = pyscroll.data.TiledMapData(tmx_data)
 
         # setup level geometry with simple pygame rects, loaded from pytmx
         self.walls = list()
+        print (tmx_data.objects)
         for object in tmx_data.objects:
             print(object)
             self.walls.append(pygame.Rect(
                 object.x, object.y,
                 object.width, object.height))
         print(self.walls)
-        # create new data source for pyscroll
-        map_data = pyscroll.data.TiledMapData(tmx_data)
+        
 
         # create new renderer (camera)
         self.map_layer = pyscroll.BufferedRenderer(map_data, self.screen.get_size(), clamp_camera=True)

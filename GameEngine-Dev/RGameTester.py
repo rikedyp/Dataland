@@ -21,9 +21,9 @@ for i in range(6):
 
 
 g = Game(800, 600)
-mapfile = 'Maps/map2.tmx'
+mapfile = 'Maps/map1.tmx'
 s1 = Scene2D(g, mapfile)
-Alice = Dude('Alice',iframes,nframes, position=[100, 10], velocity=[0, 0])
+Alice = Dude('Alice',iframes,nframes, position=[200, 500], velocity=[0, 0])
 #Bob = dude('Bob',[200,-100],iframes,sframes)
 s1.addDude(Alice, True)
 #s1.addDude(Bob,'layer_0')
