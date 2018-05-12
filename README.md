@@ -8,7 +8,8 @@ There are file-specific and some general TODOs in each .py file
 - Decide on the key aspects
   - plot
   - form
-    - why is this red?
+    - 2D office / 'real' world space where you interact with other people
+    - Stylised / puzzle / maybe 3D stuff where you interact with documents
 - Consolidate / Organise general & file-specific TODOs
 - Put installation instructions and prerequesite installs in this file
 - Find a way to make games into single executables and/or learn how to install games on windows / mac / linux
