@@ -5,6 +5,10 @@ TODO:
 
 There are file-specific and some general TODOs in each .py file
 
+- Decide on the key aspects
+  - plot
+  - form
+    - why is this red?
 - Consolidate / Organise general & file-specific TODOs
 - Put installation instructions and prerequesite installs in this file
 - Find a way to make games into single executables and/or learn how to install games on windows / mac / linux
